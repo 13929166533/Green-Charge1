@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Charger Rental</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #4CAF50; /* 绿色背景 */
+        }
+        h1 {
+            color: #333;
+        }
+        .form-group {
+            margin: 20px 0;
+        }
+        .form-group input {
+            padding: 10px;
+            width: 200px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .btn {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .btn:hover {
+            background-color: #218838;
+        }
+        #message {
+            margin-top: 20px;
+            color: #333;
+        }
+        .hidden {
+            display: none;
+        }
+        .art-text {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 48px;
+            font-weight: bold;
+            color: #00FF00;
+            text-shadow: 2px 2px 4px #000000;
+        }
+        .small-text {
+            font-size: 12px;
+            color: #333;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="art-text">Green Charge</div>
+    <div id="rentSection">
+        <h1>Rent a Shared Charger</h1>
+        <div class="form-group">
+            <label for="studentNumber">Student Number:</label>
+            <input type="text" id="studentNumber">
+        </div>
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password">
+        </div>
+        <button class="btn" onclick="rentCharger()">Rent Charger</button>
+        <button class="btn" onclick="senseStudentCard('rent')">Use Student Card</button>
+        <div id="rentMessage"></div>
+    </div>
+
+    <div id="returnSection" class="hidden">
+        <h1>Return a Shared Charger</h1>
+        <div id="timer">Elapsed Time: 0 hours 0 minutes 0 seconds</div>
+        <div id="coins">Green Coins: 0</div>
+        <button class="btn" onclick="returnCharger()">Return Charger</button>
+        <div id="returnMessage"></div>
+    </div>
+
+    <div id="recordSection" class="hidden">
+        <h1>Rental Record</h1>
+        <div id="record"></div>
+        <div id="carbonSavings"></div>
+        <button class="btn" onclick="goBack()">Return to Rent Page</button>
+        <div class="small-text">
+            Assumptions: The charger power is 10 watts and it operates at full power from start.
+        </div>
+    </div>
+
+    <script>
+        const studentDatabase = {
+            studentNumber: '12345678',
+            password: 'password123'
+        };
+
+        let rentalStartTime;
+        let timerInterval;
+        let coinInterval;
+        let elapsedTime = 0;
+        let greenCoins = 0;
+        const database = []; // 模拟数据库
+
+        const watts = 10; // 充电宝的功率
+        const carbonEmissionPerKWh = 500; // 每千瓦时的碳排放（g CO2）
+
+        function rentCharger() {
+            const studentNumber = document.getElementById('studentNumber').value;
+            const password = document.getElementById('password').value;
+
+            if (studentNumber === studentDatabase.studentNumber && password === studentDatabase.password) {
+                showMessage('rentMessage', 'Charger rented successfully.');
+                switchSection('rentSection', 'returnSection', startTimer);
+            } else {
+                showMessage('rentMessage', 'Invalid student number or password.');
+            }
+        }
+
+        function returnCharger() {
+            clearInterval(timerInterval);
+            clearInterval(coinInterval);
+            showMessage('returnMessage', 'Charger returned successfully.');
+            const lastRecord = recordToDatabase();
+            switchSection('returnSection', 'recordSection', () => displayRecord(lastRecord));
+        }
+
+        function senseStudentCard(action) {
+            if (action === 'rent') {
+                showMessage('rentMessage', 'Charger rented successfully using student card.');
+                switchSection('rentSection', 'returnSection', startTimer);
+            }
+        }
+
+        function startTimer() {
+            rentalStartTime = new Date();
+            timerInterval = setInterval(updateTimer, 1000); // 每秒更新一次
+            coinInterval = setInterval(updateCoins, 1800000); // 每30分钟更新一次
+        }
+
+        function updateTimer() {
+            const now = new Date();
+            elapsedTime = Math.floor((now - rentalStartTime) / 1000); // 转换为秒
+            document.getElementById('timer').innerText = `Elapsed Time: ${formatTime(elapsedTime)}`;
+        }
+
+        function updateCoins() {
+            greenCoins++;
+            document.getElementById('coins').innerText = `Green Coins: ${greenCoins}`;
+        }
+
+        function formatTime(totalSeconds) {
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            return `${hours} hours ${minutes} minutes ${seconds} seconds`;
+        }
+
+        function resetRental() {
+            elapsedTime = 0;
+            greenCoins = 0;
+            document.getElementById('timer').innerText = `Elapsed Time: 0 hours 0 minutes 0 seconds`;
+            document.getElementById('coins').innerText = `Green Coins: 0`;
+        }
+
+        function recordToDatabase() {
+            const studentNumber = document.getElementById('studentNumber').value;
+            const totalTime = formatTime(elapsedTime);
+            const record = {
+                studentNumber: studentNumber,
+                totalTime: totalTime,
+                greenCoins: greenCoins
+            };
+            database.push(record);
+            console.log(database); // 输出数据库内容以供检查
+            return record;
+        }
+
+        function displayRecord(record) {
+            const recordDiv = document.getElementById('record');
+            recordDiv.innerHTML = `
+                <p>Student Number: ${record.studentNumber}</p>
+                <p>Total Time: ${record.totalTime}</p>
+                <p>Green Coins: ${record.greenCoins}</p>
+            `;
+
+            const carbonSavingsDiv = document.getElementById('carbonSavings');
+            const totalHours = elapsedTime / 3600; // 转换为小时
+            const totalKWh = (watts / 1000) * totalHours; // 总千瓦时
+            const carbonSaved = totalKWh * carbonEmissionPerKWh; // 节约的碳排放量（g CO2）
+            carbonSavingsDiv.innerHTML = `
+                <p>Carbon Savings: ${carbonSaved.toFixed(2)} g CO2</p>
+            `;
+        }
+
+        function goBack() {
+            switchSection('recordSection', 'rentSection', resetRental);
+        }
+
+        function switchSection(hideId, showId, callback) {
+            setTimeout(() => {
+                document.getElementById(hideId).classList.add('hidden');
+                document.getElementById(showId).classList.remove('hidden');
+                if (callback) callback();
+            }, 2000);
+        }
+
+        function showMessage(elementId, message) {
+            document.getElementById(elementId).innerText = message;
+        }
+    </script>
+</body>
+</html>
+
+
